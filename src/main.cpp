@@ -12,6 +12,18 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+std::string get_content_type_for_file_path(std::string file_path) {
+    std::string extension = file_path.substr(file_path.find(".") + 1, file_path.length());
+
+    if (extension == "html") {
+        return "text/html";
+    } else {
+        // RFC 2046, section 4.5.1 states: The "octet-stream" subtype is used
+        // to indicate that a body contains arbitrary binary data
+        return "application/octet-stream";
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         fprintf(stderr, "[error] directory path is required at argument 1, usage: sws <path>\n");
@@ -79,14 +91,18 @@ int main(int argc, char* argv[]) {
         Response response;
         response.version = message->version;
         response.path = message->path;
+        response.headers.push_back({"Server", "sws"});
 
         if (!std::filesystem::exists(file_path)) {
             response.code = StatusCode::NOT_FOUND;
+            response.headers.push_back({"Content-Type", "text/html; charset=utf-8"});
             response.data = "<!DOCTYPE html><html><head><title>404 - Not Found</title></head><body><h1>Not Found</h1><p>No resource found at requested URL.</p><hr></hr><p><i>sws/alpha</i></p></body></html>";
         } else {
             std::ifstream file(file_path);
 
             response.code = StatusCode::OK;
+            std::string type = get_content_type_for_file_path(message->path);
+            response.headers.push_back({"Content-Type", type});
 
             std::string line;
             while (std::getline(file, line)) {

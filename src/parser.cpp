@@ -2,6 +2,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 
 std::string method_tostring(Method method) {
@@ -110,9 +111,13 @@ std::string response_tostring(Response* response) {
     buffer += " ";
     buffer += text_for_status_code(response->code);
 
-    buffer += "\nServer: sws";
-    buffer += "\nContent-Length: " + std::to_string(response->data.length());
-    buffer += "\nContent-Type: text/html; charset=utf-8";
+    response->headers.push_back({"Content-Length", std::to_string(response->data.length())});
+
+    for (int i = 0; i < std::size(response->headers); i++) {
+        auto header = response->headers[i];
+        buffer += std::format("\n{}: {}", std::get<0>(header).c_str(), std::get<1>(header).c_str());
+    }
+
     buffer += "\n\n";
 
     buffer += response->data;
