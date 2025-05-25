@@ -71,7 +71,6 @@ Request* parse(std::string data) {
             }
 
             if (header_data.at(i) != ':') {
-                printf("%s\n", header_data.c_str());
                 fprintf(stderr, "[error] malformed header, at character %c\n", header_data.at(i));
                 header_token = "";
                 header_value = "";

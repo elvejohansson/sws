@@ -13,10 +13,21 @@
 #include <unistd.h>
 
 std::string get_content_type_for_file_path(std::string file_path) {
-    std::string extension = file_path.substr(file_path.find(".") + 1, file_path.length());
+    std::size_t found = file_path.find_last_of(".");
+    std::string extension = file_path.substr(found + 1, file_path.length());
 
     if (extension == "html") {
         return "text/html";
+    } else if (extension == "js") {
+        return "text/javascript";
+    } else if (extension == "css") {
+        return "text/css";
+    } else if (extension == "webp") {
+        return "image/webp";
+    } else if (extension == "svg") {
+        return "image/svg+xml";
+    } else if (extension == "ico") {
+        return "image/vnd.microsoft.icon";
     } else {
         // RFC 2046, section 4.5.1 states: The "octet-stream" subtype is used
         // to indicate that a body contains arbitrary binary data
@@ -85,6 +96,12 @@ int main(int argc, char* argv[]) {
         int value = recv(accept_fd, buffer, 1024, 0);
 
         Request* message = parse(buffer);
+
+        if (message->path == "/") {
+            message->path = "/index.html";
+        } else if (message->path[message->path.length() - 1] == '/') {
+            message->path += "index.html";
+        }
 
         std::string file_path = directory_path + message->path;
 
