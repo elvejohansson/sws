@@ -1,4 +1,6 @@
+#include "parser.h"
 #include <cerrno>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <netdb.h>
@@ -6,6 +8,7 @@
 #include <stdlib.h>
 #include <string>
 #include <sys/socket.h>
+#include <unistd.h>
 
 int main() {
     int status;
@@ -47,17 +50,39 @@ int main() {
 
     printf("[info] listening on :8080\n");
 
-    struct sockaddr_storage their_address;
-    socklen_t address_size = sizeof their_address;
-    int accept_fd = accept(sockfd, (sockaddr *)&their_address, &address_size);
+    using clock = std::chrono::steady_clock;
 
-    char buffer[1024];
-    int value = recv(accept_fd, buffer, 1024, 0);
+    while (true) {
+        struct sockaddr_storage their_address;
+        socklen_t address_size = sizeof their_address;
+        int accept_fd = accept(sockfd, (sockaddr *)&their_address, &address_size);
 
-    printf("%s", buffer);
+        std::chrono::time_point<clock> before = clock::now();
 
-    std::string response = "HTTP/1.1 200 OK\nServer: sws\n\nOK";
-    send(accept_fd, response.c_str(), response.length(), 0);
+        printf("[debug] accepting connection\n");
+
+        char buffer[1024];
+        int value = recv(accept_fd, buffer, 1024, 0);
+
+        Request* message = parse(buffer);
+
+        Response response;
+        response.version = message->version;
+        response.code = StatusCode::OK;
+        response.path = message->path;
+        response.data = "THE STUFF";
+
+        std::string serialized_response = response_tostring(&response);
+        send(accept_fd, serialized_response.c_str(), serialized_response.length(), 0);
+
+        std::chrono::time_point<clock> after = clock::now();
+        double seconds = std::chrono::duration<double>(after - before).count();
+
+        printf("[debug] request processing took %.1f ms\n", seconds * 1'000);
+        printf("[info] %s %s\n", method_tostring(message->method).c_str(), message->path.c_str());
+
+        close(accept_fd);
+    }
 
     freeaddrinfo(servinfo);
 

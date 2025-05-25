@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 set(SOURCES
     src/main.cpp
+    src/parser.cpp src/parser.h
 )
 
 add_executable(sws ${SOURCES})
