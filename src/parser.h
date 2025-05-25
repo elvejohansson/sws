@@ -10,7 +10,8 @@ enum Method {
 };
 
 enum StatusCode {
-    OK,
+    OK,        // 200
+    NOT_FOUND, // 404
 };
 
 struct Request {

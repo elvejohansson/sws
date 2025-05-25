@@ -16,6 +16,8 @@ int code_for_status_code(StatusCode code) {
     switch (code) {
     case StatusCode::OK:
         return 200;
+    case StatusCode::NOT_FOUND:
+        return 404;
     }
 }
 
@@ -23,6 +25,8 @@ std::string text_for_status_code(StatusCode code) {
     switch (code) {
     case StatusCode::OK:
         return "OK";
+    case StatusCode::NOT_FOUND:
+        return "Not Found";
     }
 }
 
@@ -66,8 +70,12 @@ Request* parse(std::string data) {
             }
 
             if (header_data.at(i) != ':') {
+                printf("%s\n", header_data.c_str());
                 fprintf(stderr, "[error] malformed header, at character %c\n", header_data.at(i));
-                exit(1);
+                header_token = "";
+                header_value = "";
+                i++;
+                continue;
             }
 
             i++;

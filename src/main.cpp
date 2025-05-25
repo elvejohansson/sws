@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdlib.h>
@@ -10,7 +12,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "[error] directory path is required at argument 1, usage: sws <path>\n");
+        exit(1);
+    }
     int status;
     addrinfo hints;
     addrinfo *servinfo;
@@ -50,6 +56,8 @@ int main() {
 
     printf("[info] listening on :8080\n");
 
+    std::string directory_path = argv[1];
+
     using clock = std::chrono::steady_clock;
 
     while (true) {
@@ -66,11 +74,25 @@ int main() {
 
         Request* message = parse(buffer);
 
+        std::string file_path = directory_path + message->path;
+
         Response response;
         response.version = message->version;
-        response.code = StatusCode::OK;
         response.path = message->path;
-        response.data = "THE STUFF";
+
+        if (!std::filesystem::exists(file_path)) {
+            response.code = StatusCode::NOT_FOUND;
+            response.data = "<!DOCTYPE html><html><head><title>404 - Not Found</title></head><body><h1>Not Found</h1><p>No resource found at requested URL.</p><hr></hr><p><i>sws/alpha</i></p></body></html>";
+        } else {
+            std::ifstream file(file_path);
+
+            response.code = StatusCode::OK;
+
+            std::string line;
+            while (std::getline(file, line)) {
+                response.data += line;
+            }
+        }
 
         std::string serialized_response = response_tostring(&response);
         send(accept_fd, serialized_response.c_str(), serialized_response.length(), 0);
